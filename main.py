@@ -49,6 +49,6 @@ cumul_returns.iloc[:, :].plot()
 
 print(stock_returns.corr())
 
-clean_table.to_csv(r'C:\Users\dunca\PycharmProjects\MeanReversion\Data.csv')
+clean_table.to_csv(r'../Data.csv')
 plt.show()
 
