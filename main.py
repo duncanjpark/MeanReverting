@@ -13,6 +13,7 @@ SPY_Holdings = main_etf('SPY')
 display(SPY_Holdings['Weight'])
 
 # test
+# test from mac
 
 tickers = Ticker(list(SPY_Holdings.index[:20]), group_by='symbol', asynchronous=True, retry=20, status_forcelist=[404, 429, 500, 502, 503, 504])
 data = tickers.history(period='2y')
