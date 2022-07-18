@@ -8,6 +8,7 @@ import numpy as np
 from SPYholdings import main_etf
 from yahooquery import Ticker
 
+#yo
 
 SPY_Holdings = main_etf('SPY')
 display(SPY_Holdings['Weight'])
