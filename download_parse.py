@@ -1,25 +1,37 @@
 #!/usr/bin/env python3
 
-import yfinance as yf
 import pandas as pd
-from IPython.display import display
-import matplotlib.pyplot as plt
-import numpy as np
-from SPYholdings import main_etf
 from yahooquery import Ticker
 from warnings import simplefilter
+import requests
+import re
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
-
+#Parameters
 period_length = '5y'
-num_initial_tickers = 30
+num_initial_tickers = 200
+etf_key = 'SPY'
+headers = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  "Chrome/51.0.2704.103 Safari/537.36"
+}
 
-#Get Weightings of S&P500 Holdings
-SPY_Holdings = main_etf('SPY')
-#display(SPY_Holdings['Weight'])
+url = ("https://www.zacks.com/funds/etf/" + etf_key + "/holding")
+with requests.Session() as req:
+    req.headers.update(headers)
+    r = req.get(url)
+    etf_stock_list = re.findall(r'etf\\\/(.*?)\\', r.text)
+    etf_stock_list = [x.replace('.', '-') for x in etf_stock_list]
+    etf_stock_details_list = re.findall(
+        r'<\\\/span><\\\/span><\\\/a>",(.*?), "<a class=\\\"report_[a-z]+ newwin\\', r.text)
+
+    new_details = [x.replace('\"', '').replace(',', '').split() for x in etf_stock_details_list ]
+    holdings = pd.DataFrame(new_details, index=etf_stock_list, columns=['Shares', 'Weight', '52 Wk Change(%)'])
+    
+
 
 #Get Data on tickers that are currently in SPY
-tickers = Ticker(list(SPY_Holdings.index[:num_initial_tickers]), group_by='symbol', asynchronous=True, retry=20, status_forcelist=[404, 429, 500, 502, 503, 504])
+tickers = Ticker(list(holdings.index[:num_initial_tickers]), group_by='symbol', asynchronous=True, retry=20, status_forcelist=[404, 429, 500, 502, 503, 504])
 #data = tickers.history(start='2018-01-01', end='2022-01-01')
 data = tickers.history(period=period_length)
 #display(data)
