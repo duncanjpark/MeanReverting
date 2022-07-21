@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from datetime import timedelta
+#from datetime import timedelta
 import pandas as pd
 from IPython.display import display
 import matplotlib.pyplot as plt
@@ -8,13 +8,16 @@ import numpy as np
 #from regex import F
 from sklearn.decomposition import PCA
 import statsmodels.api as sm
+from portfolio import adjust_holdings, port_display
+from portfolio import port_display
 
 #Parameters
 num_factors = 5
 train_period_days = 252
 num_quality_tickers = 10
 #lookback = timedelta(days=60)
-lookback = 5
+lookback = 60
+R_squared_cutoff = 0.9
 
 """
 Separate Data Periods
@@ -62,11 +65,9 @@ half_lives = {ticker: np.log(0.5) / np.log(np.abs(return_model.params[1])) for t
 #Get highest scoring tickers
 quality_tickers = dict(sorted(half_lives.items(), key=lambda x: x[1], reverse=False)[:num_quality_tickers])
 
-
 """
 Portfolio Selection
 """
-#trade_returns = trade_returns.filter(items=quality_tickers.keys())
 trade_sample = clean_table[train_period_days-lookback:]
 trade_sample = trade_sample.filter(items=quality_tickers.keys())
 PCAmodel = PCA(num_factors)
@@ -74,28 +75,35 @@ PCAmodel.fit(trade_sample)
 factors = np.dot(trade_sample, PCAmodel.components_.T)[:,:num_factors]
 factors = sm.add_constant(factors)
 #Iterate over days in trade_sample
-display(trade_sample)
+
 #for index in range(1, len(trade_sample.index)):
-for index in range(1, 20):
-    current_window = trade_sample.iloc[index:index + lookback]
-    display(current_window)
-    trading_models = {ticker: sm.OLS(current_window[ticker], factors[index:index + lookback]).fit() for ticker in current_window.columns}
-    #predictions = pd.DataFrame({ticker: OLSmodel.predict(factors) for ticker, OLSmodel in OLSmodels.items()})
+for index in range(lookback, 5 + lookback):
+    #Select only quality tickers based on R^2
+    #current day = index
+    current_window = trade_sample.iloc[index - lookback:index]
+    #display(current_window)
+    trading_models = {ticker: sm.OLS(current_window[ticker], factors[index - lookback:index]).fit() for ticker in current_window.columns}
     R_squareds = {ticker: trading_model.rsquared for ticker, trading_model in trading_models.items()}
-    display(R_squareds)
+    R_squareds = dict(filter(lambda f: f[1] >= R_squared_cutoff, R_squareds.items()))
+    
+    trading_models = dict(filter(lambda f: f[0] in R_squareds.keys(), trading_models.items()))
+    
+    #Get Trading signals
+    resids = pd.DataFrame({ticker: trading_model.resid for ticker, trading_model in trading_models.items()})
+    zscores = ((resids - resids.mean()) / resids.std()).iloc[-1]
+    #display(resids)
+    #display(zscores)
+
+    """
+    Trading
+    """
+
+    #Dynamically adjust the portfolio by opening and closing the long/short positions
+    adjust_holdings(zscores)
+
+    port_display()
 
 
-#Get Trading signals
-
-
-#Select only quality trading signals based on R^2
-
-
-"""
-Trading
-"""
-
-#Dynamically adjust the portfolio by opening and closing the long/short positions
 
 
 #plt.show()
