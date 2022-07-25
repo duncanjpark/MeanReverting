@@ -8,22 +8,24 @@ import numpy as np
 #from regex import F
 from sklearn.decomposition import PCA
 import statsmodels.api as sm
-from portfolio import adjust_holdings, port_display
-from portfolio import port_display
+#from portfolio import adjust_holdings, port_display
+#from portfolio import port_display
+from portfolio import Portfolio
 
 #Parameters
-num_factors = 5
+num_factors = 15
 train_period_days = 252
-num_quality_tickers = 10
+num_quality_tickers = 75
 #lookback = timedelta(days=60)
 lookback = 60
-R_squared_cutoff = 0.9
+R_squared_cutoff = 0.95
 
 """
 Separate Data Periods
 """
 clean_table = pd.read_pickle(r'./Data.pkl')
 #display(clean_table)
+#clean_table.plot()
 
 #Get Stock Returns and Cumulative Returns
 stock_returns = (clean_table/clean_table.shift(1)-1).dropna()
@@ -76,8 +78,10 @@ factors = np.dot(trade_sample, PCAmodel.components_.T)[:,:num_factors]
 factors = sm.add_constant(factors)
 #Iterate over days in trade_sample
 
-#for index in range(1, len(trade_sample.index)):
-for index in range(lookback, 5 + lookback):
+port = Portfolio()
+port_value = {}
+for index in range(lookback, len(trade_sample.index)):
+#for index in range(lookback, 30 + lookback):
     #Select only quality tickers based on R^2
     #current day = index
     current_window = trade_sample.iloc[index - lookback:index]
@@ -99,11 +103,16 @@ for index in range(lookback, 5 + lookback):
     """
 
     #Dynamically adjust the portfolio by opening and closing the long/short positions
-    adjust_holdings(zscores)
+    port.adjust_holdings(zscores)
 
-    port_display()
+    port.port_display()
+    port_value[port.date] = port.total_value
+
+port.port_holdings
 
 
+port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfolio'])
+#display(port_value)
+port_value.plot()
 
-
-#plt.show()
+plt.show()
