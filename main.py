@@ -8,8 +8,7 @@ import numpy as np
 #from regex import F
 from sklearn.decomposition import PCA
 import statsmodels.api as sm
-#from portfolio import adjust_holdings, port_display
-#from portfolio import port_display
+from portfolio import AAPL_changes
 from portfolio import Portfolio
 
 #Parameters
@@ -24,14 +23,12 @@ R_squared_cutoff = 0.95
 Separate Data Periods
 """
 clean_table = pd.read_pickle(r'./Data.pkl')
-#display(clean_table)
-#clean_table.plot()
+
 
 #Get Stock Returns and Cumulative Returns
 stock_returns = (clean_table/clean_table.shift(1)-1).dropna()
 
 #Separate return dataframes into training period and trading period
-#train_returns = stock_returns[0:train_period_days]
 trade_returns = stock_returns[train_period_days-lookback:]
 
 """
@@ -62,7 +59,6 @@ predictions_rets.iloc[0] = 0
 #Create models for the returns vs lagged
 return_models = {ticker: sm.OLS(predictions_rets[ticker], sm.add_constant(predictions_lags[ticker])).fit() for ticker in predictions_rets.columns}
 half_lives = {ticker: np.log(0.5) / np.log(np.abs(return_model.params[1])) for ticker, return_model in return_models.items()}
-#display(half_lives)
 
 #Get highest scoring tickers
 quality_tickers = dict(sorted(half_lives.items(), key=lambda x: x[1], reverse=False)[:num_quality_tickers])
@@ -73,19 +69,21 @@ Portfolio Selection
 trade_sample = clean_table[train_period_days-lookback:]
 trade_sample = trade_sample.filter(items=quality_tickers.keys())
 PCAmodel = PCA(num_factors)
-PCAmodel.fit(trade_sample)
+PCAmodel = PCAmodel.fit(trade_sample)
+explained_variance = PCAmodel.explained_variance_ratio_
+#display(explained_variance)
 factors = np.dot(trade_sample, PCAmodel.components_.T)[:,:num_factors]
 factors = sm.add_constant(factors)
 #Iterate over days in trade_sample
+display(factors)
+#factors.info()
 
 port = Portfolio()
 port_value = {}
-for index in range(lookback, len(trade_sample.index)):
-#for index in range(lookback, 30 + lookback):
+#for index in range(lookback, len(trade_sample.index)):
+for index in range(lookback, 30 + lookback):
     #Select only quality tickers based on R^2
-    #current day = index
     current_window = trade_sample.iloc[index - lookback:index]
-    #display(current_window)
     trading_models = {ticker: sm.OLS(current_window[ticker], factors[index - lookback:index]).fit() for ticker in current_window.columns}
     R_squareds = {ticker: trading_model.rsquared for ticker, trading_model in trading_models.items()}
     R_squareds = dict(filter(lambda f: f[1] >= R_squared_cutoff, R_squareds.items()))
@@ -95,8 +93,6 @@ for index in range(lookback, len(trade_sample.index)):
     #Get Trading signals
     resids = pd.DataFrame({ticker: trading_model.resid for ticker, trading_model in trading_models.items()})
     zscores = ((resids - resids.mean()) / resids.std()).iloc[-1]
-    #display(resids)
-    #display(zscores)
 
     """
     Trading
@@ -112,7 +108,16 @@ port.port_holdings
 
 
 port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfolio'])
-#display(port_value)
-port_value.plot()
+
+
+with pd.plotting.plot_params.use("x_compat", True):
+    AAPL_changes["Score"].plot(color="b")
+    AAPL_changes["Open Short"].plot(marker="o", color='g')
+    AAPL_changes["Open Long"].plot(marker="o", color='r')
+    AAPL_changes["Close Short"].plot(marker="x", color='g')
+    AAPL_changes["Close Long"].plot(marker="x", color='r')
+
+#port_value.plot()
+
 
 plt.show()

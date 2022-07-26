@@ -4,43 +4,36 @@ from dis import dis
 from IPython.display import display
 import pandas as pd
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 
 clean_table = pd.read_pickle(r'./Data.pkl')
 
-"""
-class Porfolio(object):
-    def __init__(self) -> None:
-        self.cash = 100000   # $100,000
-        self.port = { }
-"""
 
-#cash = 100000   # $100,000
-#port = { }
-
+#AAPL_changes = pd.DataFrame(clean_table.loc['2018-07-18':'2018-10-20','AAPL'])
+#startdate = pd.to_datetime('2018-09-18').date()
+#enddate = pd.to_datetime('2018-12-25').date()
+#clean_table.loc[startdate:enddate, 'AAPL'].plot()
+#AAPL_changes = pd.DataFrame(clean_table.loc[startdate:enddate,'AAPL'])
+AAPL_changes = pd.DataFrame()
+#AAPL_changes = pd.DataFrame(columns=['Price', 'Open Short', 'Close Short', 'Open Long', 'Close Long'])
+#display(clean_table.loc[:,'AAPL'])
 
 class Portfolio(object):
     def __init__(self) -> None:
         self.cash = 100000   # $100,000
         self.port = { }
-        #self.date
 
     def adjust_holdings(self, scores):
-        #display(scores.name)
-        #display(scores.values)
         self.date = scores.name
+
         for ticker, score in scores.items():
-            #display(ticker)
-            #display(score)
             if ticker not in self.port.keys():
                 self.port[ticker] = self.Holding(ticker, score)
-                #self.port[ticker] = self.adjust(self.port[ticker])
-            #else:
-            #value_delta = self.port[ticker].adjust(self.date, score)
-            #self.cash += value_delta
+            if ticker == 'AAPL':
+                AAPL_changes.at[self.date, 'Score'] = score 
             self.port[ticker] = self.port[ticker].adjust(self.date, score)
             self.cash += self.port[ticker].change
-            #display(self.port[ticker].date.strftime('%m/%d/%Y') + " " + str(self.port[ticker].ticker) + " " + str(self.port[ticker].price) + " " + str(self.port[ticker].value))
 
 
     def port_display(self):
@@ -68,30 +61,29 @@ class Portfolio(object):
             self.ticker = ticker
             self.score = score
             self.position = 0
-            #self.date = date
             self.value = 0
-
+            self.factor_collat = False  #does this holding have a position as a result of being a factor of a different ticker deviating from its mean?
 
         def display(self):
-            #print()
             display(self.ticker + " | " + str(self.position) + " | " + str(self.value))
-            #display(self.ticker)
-            #display(self.score)
-        
+
         def open_short(self):
+            if self.ticker == 'AAPL':
+                AAPL_changes.at[self.date, 'Open Short'] = self.score
             self.position = -1
             self.value = self.price * self.position
-            #self.cash += abs(holding.value)
             return self.value
 
         def open_long(self):
+            if self.ticker == 'AAPL':
+                AAPL_changes.at[self.date, 'Open Long'] = self.score
             self.position = 1
             self.value = self.price * self.position
-            #self.cash -= holding.value
             return self.value
 
         def close_long(self):
-            #self.cash += holding.value
+            if self.ticker == 'AAPL':
+                AAPL_changes.at[self.date, 'Close Long'] = self.score
             temp = self.value
             self.position = 0
             self.value = 0
@@ -99,19 +91,17 @@ class Portfolio(object):
             
 
         def close_short(self):
-            #self.cash -= abs(holding.value)
+            if self.ticker == 'AAPL':
+                AAPL_changes.at[self.date, 'Close Short'] = self.score
             temp = self.value
             self.position = 0
             self.value = 0
             return temp
         
         def adjust(self, date, score):
-            #holding.date = date
             self.score = score
             self.date = date
             self.price = clean_table.at[self.date, self.ticker]
-            #display(self.date.strftime('%m/%d/%Y') + str(self.ticker) + " " + str(self.price))
-            temp_value = self.value
             self.change = 0
             if self.position == 0:
                 if self.score > 1.25:
@@ -128,19 +118,5 @@ class Portfolio(object):
                     self.change += self.close_long()
                 else:
                     self.value = self.price * self.position
-            #self.value_delta = temp_value - self.value
             return self
         
-
-
-
-#port = Portfolio()
-
-"""
-#Testing Portfolio Management
-cerebro = bt.Cerebro()
-cerebro.broker.setcash(100000.0)
-
-cerebro.run()
-print('Final Port Val: %.2f' % cerebro.broker.getvalue())
-"""
