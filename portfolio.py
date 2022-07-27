@@ -68,7 +68,7 @@ class Portfolio(object):
 
     def port_value(self):
         self.total_value = self.cash + self.long_value + self.short_value
-        return (f'Cash: {self.cash:9.2f} | Long Size: {self.long_value:7.2f} | Short Size: {self.short_value:7.2f}'
+        return (f'Cash: {self.cash:9.2f} | Long Size: {self.long_value:9.2f} | Short Size: {self.short_value:9.2f}'
             f'| SPY Hedge: {self.hedge_val:9.2f} | Total: {self.total_value:9.2f}')
 
 
