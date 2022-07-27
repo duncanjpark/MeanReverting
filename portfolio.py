@@ -21,13 +21,15 @@ AAPL_changes = pd.DataFrame()
 AAPL_price = pd.DataFrame()
 #AAPL_changes = pd.DataFrame(columns=['Price', 'Open Short', 'Close Short', 'Open Long', 'Close Long'])
 #display(clean_table.loc[:,'AAPL'])
-purchase_max = 1000
+purchase_max = 7500
+
 
 class Portfolio(object):
     def __init__(self) -> None:
         self.cash = 100000   # $100,000
         self.port = { }
         self.hedge = 0
+
 
     def adjust_holdings(self, scores):
         self.date = scores.name
@@ -49,14 +51,16 @@ class Portfolio(object):
                 self.short_value += holding.value
         spy_price = spy_table.at[self.date, 'SPY']
         spy_pos = -math.floor((self.long_value + self.short_value) / spy_price)
+        #spy_pos = 0
         #display(spy_pos)
         self.hedge_port(spy_pos, spy_price)
     
     def hedge_port(self, spy_pos, spy_price):
-        pos_delta = self.hedge - spy_pos
-        self.cash += pos_delta * spy_price
+        pos_delta = spy_pos - self.hedge
+        self.cash -= pos_delta * spy_price
         self.hedge = spy_pos
         self.hedge_val = self.hedge * spy_price
+        spy_table.at[self.date, 'Position'] = spy_pos
         #return self.value
 
     def port_display(self):
@@ -67,7 +71,7 @@ class Portfolio(object):
             holding.display()
 
     def port_value(self):
-        self.total_value = self.cash + self.long_value + self.short_value
+        self.total_value = self.cash + self.long_value + self.short_value + self.hedge_val
         return (f'Cash: {self.cash:9.2f} | Long Size: {self.long_value:9.2f} | Short Size: {self.short_value:9.2f}'
             f'| SPY Hedge: {self.hedge_val:9.2f} | Total: {self.total_value:9.2f}')
 
@@ -89,6 +93,7 @@ class Portfolio(object):
                 AAPL_price.at[self.date, 'Open Short'] = self.price
             self.position = -(math.floor(purchase_max / self.price))
             self.value = self.price * self.position
+            self.init_short = self.value
             return self.value
 
         def open_long(self):
@@ -96,8 +101,6 @@ class Portfolio(object):
                 AAPL_changes.at[self.date, 'Open Long'] = self.score
                 AAPL_price.at[self.date, 'Open Long'] = self.price
             self.position = (math.floor(purchase_max / self.price))
-            #display(f'Open long. {math.floor(purchase_max / self.price)}')
-
             self.value = self.price * self.position
             return self.value
 
@@ -105,6 +108,7 @@ class Portfolio(object):
             if self.ticker == 'MSFT':
                 AAPL_changes.at[self.date, 'Close Long'] = self.score
                 AAPL_price.at[self.date, 'Close Long'] = self.price
+            self.value = self.position * self.price
             temp = self.value
             self.position = 0
             self.value = 0
@@ -115,9 +119,11 @@ class Portfolio(object):
             if self.ticker == 'MSFT':
                 AAPL_changes.at[self.date, 'Close Short'] = self.score
                 AAPL_price.at[self.date, 'Close Short'] = self.price
+            self.value = self.position * self.price
             temp = self.value
             self.position = 0
             self.value = 0
+            #display(f'Short Closed. Opened at {self.init_short}, closed at {temp}, meaning profit of {temp - self.init_short}')
             return temp
         
         def adjust(self, date, score):
@@ -126,17 +132,17 @@ class Portfolio(object):
             self.price = clean_table.at[self.date, self.ticker]
             self.change = 0
             if self.position == 0:
-                if self.score > 1.25:
+                if self.score > 1.5: #1.25:
                     self.change -= self.open_short()
-                if self.score < -1.25:
+                if self.score < -1.5: #-1.25:
                     self.change -= self.open_long()
             elif self.position < 0:
-                if self.score < 0.5:
+                if self.score < 0.25: #0.5:
                     self.change += self.close_short()
                 else:
                     self.value = self.price * self.position
             else:
-                if self.score > -0.5:
+                if self.score > -0.25: #-0.5:
                     self.change += self.close_long()
                 else:
                     self.value = self.price * self.position

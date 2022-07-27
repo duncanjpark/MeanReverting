@@ -10,21 +10,22 @@ from sklearn.decomposition import PCA
 import statsmodels.api as sm
 from portfolio import AAPL_changes, AAPL_price
 from portfolio import Portfolio
+#from portfolio import total_long_close_value, total_long_open_value, total_short_close_value, total_short_open_value, total_SPY_long_close_value, total_SPY_long_open_value, total_SPY_short_close_value, total_SPY_short_open_value
+from portfolio import spy_table
 
 #Parameters
 num_factors = 15
 train_period_days = 252
-num_quality_tickers = 75
-#lookback = timedelta(days=60)
-lookback = 30
-R_squared_cutoff = 0.95
+num_quality_tickers = 50
+lookback = 60
+R_squared_cutoff = 0.96
 risk_free_rate = 0.02
 
 """
 Separate Data Periods
 """
 clean_table = pd.read_pickle(r'./Data.pkl')
-spy_table = pd.read_pickle(r'./SPY.pkl')
+#spy_table = pd.read_pickle(r'./SPY.pkl')
 
 #Get Stock Returns and Cumulative Returns
 stock_returns = (clean_table/clean_table.shift(1)-1).dropna()
@@ -80,6 +81,7 @@ factors = sm.add_constant(factors)
 
 port = Portfolio()
 port_value = {}
+
 for index in range(lookback, len(trade_sample.index)):
 #for index in range(lookback, 90 + lookback):
     #Select only quality tickers based on R^2
@@ -109,12 +111,21 @@ for index in range(lookback, len(trade_sample.index)):
     port.port_display()
     port_value[port.date] = port.total_value
 
-port.port_holdings()
+
+#port.port_holdings()
+
 port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfolio'])
-log_return = np.sum(np.log(port_value/port_value.shift()), axis=1)
+#log_return = np.sum(np.log(port_value/port_value.shift()), axis=1)
+#spy_log_return = np.sum(np.log(spy_table/spy_table.shift()), axis=1)
+#spy_log_return.plot()
+
 #log_return.plot()
-sharpe_ratio = (log_return.mean() - risk_free_rate)/log_return.std()
-asr = sharpe_ratio*252**.5
+
+#plt.figure(210)
+#sharpe_ratio = (log_return.mean() - risk_free_rate)/log_return.std()
+#asr = sharpe_ratio*252**.5
+#asr.plot()
+
 
 plt.figure(211)
 with pd.plotting.plot_params.use("x_compat", True):
@@ -135,8 +146,18 @@ with pd.plotting.plot_params.use("x_compat", True):
     AAPL_price["Close Long"].plot(marker="x", color='r')
     plt.legend()
 
-#plt.figure(214)
-port_value.plot()
+plt.figure(214)
 
+spy_table = pd.DataFrame(spy_table)
+spy_table.loc[:,'SPY'] = spy_table.loc[:,'SPY']  * ((100000) / spy_table.at[pd.to_datetime('2018-07-25').date(), 'SPY'])
+#display(spy_table.head())
+spy_table = pd.DataFrame(spy_table.loc[pd.to_datetime('2018-07-25').date():])
+with pd.plotting.plot_params.use("x_compat", True):
+    spy_table['SPY'].plot()
+    port_value['Portfolio'].plot()
+
+plt.figure(215)
+spy_pos_ewm = spy_table['Position'].ewm(span=10).mean()
+spy_pos_ewm.plot()
 
 plt.show()
