@@ -8,7 +8,7 @@ import re
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 #Parameters
-period_length = '5y'
+period_length = '10y'
 num_initial_tickers = 500
 etf_key = 'SPY'
 headers = {
@@ -31,11 +31,12 @@ with requests.Session() as req:
 
 #Get Data on tickers that are currently in SPY
 tickers = Ticker(list(holdings.index[:num_initial_tickers]), group_by='symbol', asynchronous=True, retry=20, status_forcelist=[404, 429, 500, 502, 503, 504])
-#data = tickers.history(start='2018-01-01', end='2022-01-01')
+#data = tickers.history(start='2012-01-01', end='2018-01-01')
 data = tickers.history(period=period_length)
 #display(data)
 spy_ticker = Ticker(['SPY', 'INDU'], group_by='symbol', asynchronous=True, retry=20, status_forcelist=[404, 429, 500, 502, 503, 504])
 spy_data = spy_ticker.history(period=period_length)
+
 
 #Create Clean Table of Close Prices for tickers in Data
 symbols = list(set(data.index.get_level_values(0)))
@@ -49,7 +50,10 @@ clean_table = clean_table.copy()
 clean_table = clean_table.dropna(axis='columns')
 symbols = clean_table.columns
 
+#data = pd.DataFrame(data, index=data['AAPL'].index.get_level_values(0))
+#symbols = list(set(data.index.get_level_values(0)))
 
+#symbols = list(set(data.keys().get_level_values()))
 
 #Create clean SPY Table
 

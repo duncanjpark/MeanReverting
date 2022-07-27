@@ -14,12 +14,17 @@ from portfolio import Portfolio
 from portfolio import spy_table
 
 #Parameters
-num_factors = 15
-train_period_days = 252
-num_quality_tickers = 50
-lookback = 60
-R_squared_cutoff = 0.96
-risk_free_rate = 0.02
+num_factors = 10            # 15 > 5
+train_period_days = 504     # 504 > 252 (seemingly) 
+num_quality_tickers = 50   # 100 too volatile, 75 shit the bed for some reason... sticking with 50
+lookback = 75               # trying 75
+R_squared_cutoff = 0.96     #
+risk_free_rate = 0.02       #
+
+#10 factors, 504 train days, 90 lookback: 267 ending but not as good as 15, 503, 60 in beginning
+#^seems less volatile
+
+#10 factors, 504 days, 75 lookback seems to have more intra-month volatilaty but more consistent overall
 
 """
 Separate Data Periods
@@ -126,7 +131,7 @@ port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfo
 #asr = sharpe_ratio*252**.5
 #asr.plot()
 
-
+"""
 plt.figure(211)
 with pd.plotting.plot_params.use("x_compat", True):
     AAPL_changes["Score"].plot(color="b")
@@ -145,13 +150,15 @@ with pd.plotting.plot_params.use("x_compat", True):
     AAPL_price["Close Short"].plot(marker="x", color='g')
     AAPL_price["Close Long"].plot(marker="x", color='r')
     plt.legend()
-
+"""
 plt.figure(214)
 
+day1 = port_value.index[0]
+
 spy_table = pd.DataFrame(spy_table)
-spy_table.loc[:,'SPY'] = spy_table.loc[:,'SPY']  * ((100000) / spy_table.at[pd.to_datetime('2018-07-25').date(), 'SPY'])
+spy_table.loc[:,'SPY'] = spy_table.loc[:,'SPY']  * ((100000) / spy_table.at[day1, 'SPY'])
 #display(spy_table.head())
-spy_table = pd.DataFrame(spy_table.loc[pd.to_datetime('2018-07-25').date():])
+spy_table = pd.DataFrame(spy_table.loc[day1:])
 with pd.plotting.plot_params.use("x_compat", True):
     spy_table['SPY'].plot()
     port_value['Portfolio'].plot()

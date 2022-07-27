@@ -11,17 +11,10 @@ import math
 clean_table = pd.read_pickle(r'./Data.pkl')
 spy_table = pd.read_pickle(r'./SPY.pkl')
 
-
-#AAPL_changes = pd.DataFrame(clean_table.loc['2018-07-18':'2018-10-20','AAPL'])
-#startdate = pd.to_datetime('2018-09-18').date()
-#enddate = pd.to_datetime('2018-12-25').date()
-#clean_table.loc[startdate:enddate, 'AAPL'].plot()
-#AAPL_changes = pd.DataFrame(clean_table.loc[startdate:enddate,'AAPL'])
 AAPL_changes = pd.DataFrame()
 AAPL_price = pd.DataFrame()
-#AAPL_changes = pd.DataFrame(columns=['Price', 'Open Short', 'Close Short', 'Open Long', 'Close Long'])
-#display(clean_table.loc[:,'AAPL'])
-purchase_max = 7500
+
+purchase_max = 25000
 
 
 class Portfolio(object):
@@ -37,9 +30,11 @@ class Portfolio(object):
         for ticker, score in scores.items():
             if ticker not in self.port.keys():
                 self.port[ticker] = self.Holding(ticker, score)
+
             if ticker == 'MSFT':
                 AAPL_changes.at[self.date, 'Score'] = score
                 AAPL_price.at[self.date, 'Price'] = clean_table.at[self.date, ticker]
+
             self.port[ticker] = self.port[ticker].adjust(self.date, score)
             self.cash += self.port[ticker].change
         self.long_value = 0
@@ -137,14 +132,15 @@ class Portfolio(object):
                 if self.score < -1.5: #-1.25:
                     self.change -= self.open_long()
             elif self.position < 0:
-                if self.score < 0.25: #0.5:
+                if self.score < 0.75: #0.5:
                     self.change += self.close_short()
                 else:
                     self.value = self.price * self.position
             else:
-                if self.score > -0.25: #-0.5:
+                if self.score > -0.5:
                     self.change += self.close_long()
                 else:
                     self.value = self.price * self.position
             return self
+        
         
