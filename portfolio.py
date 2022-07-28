@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 import matplotlib.pyplot as plt
 import math
+import numpy as np
 
 
 clean_table = pd.read_pickle(r'./Data.pkl')
@@ -14,7 +15,7 @@ spy_table = pd.read_pickle(r'./SPY.pkl')
 AAPL_changes = pd.DataFrame()
 AAPL_price = pd.DataFrame()
 
-purchase_max = 25000
+purchase_max = 20000
 
 
 class Portfolio(object):
@@ -25,9 +26,20 @@ class Portfolio(object):
 
 
     def adjust_holdings(self, scores):
+
         self.date = scores.name
+        spy_table.at[self.date, 'Scores'] = len(scores.index)
+        temp_count = 0
+        for ticker, score in scores.items():
+            if score > 1.5 or score < -1.5:
+                temp_count += 1
+        spy_table.at[self.date, 'Count'] = temp_count
+        #self.init_cash = (self.cash / 2) + (self.cash / (len(scores.index) / 45) / 3) - (self.cash * (.1 * temp_count ) )
+        self.init_cash = max((self.cash) - ((self.cash * ( temp_count / 5) ) / 2), self.cash / 4)
+
 
         for ticker, score in scores.items():
+        
             if ticker not in self.port.keys():
                 self.port[ticker] = self.Holding(ticker, score)
 
@@ -35,7 +47,7 @@ class Portfolio(object):
                 AAPL_changes.at[self.date, 'Score'] = score
                 AAPL_price.at[self.date, 'Price'] = clean_table.at[self.date, ticker]
 
-            self.port[ticker] = self.port[ticker].adjust(self.date, score)
+            self.port[ticker] = self.port[ticker].adjust(self.date, score, self.init_cash)
             self.cash += self.port[ticker].change
         self.long_value = 0
         self.short_value = 0
@@ -56,6 +68,7 @@ class Portfolio(object):
         self.hedge = spy_pos
         self.hedge_val = self.hedge * spy_price
         spy_table.at[self.date, 'Position'] = spy_pos
+        spy_table.at[self.date, 'Leverage'] = (self.long_value + np.abs(self.short_value) + np.abs(self.hedge_val)) / self.cash
         #return self.value
 
     def port_display(self):
@@ -67,8 +80,8 @@ class Portfolio(object):
 
     def port_value(self):
         self.total_value = self.cash + self.long_value + self.short_value + self.hedge_val
-        return (f'Cash: {self.cash:9.2f} | Long Size: {self.long_value:9.2f} | Short Size: {self.short_value:9.2f}'
-            f'| SPY Hedge: {self.hedge_val:9.2f} | Total: {self.total_value:9.2f}')
+        return (f'Cash: {self.cash:9.2f} | Long Size: {self.long_value:9.2f} | Short Size: {self.short_value:10.2f}'
+            f'| SPY Hedge: {self.hedge_val:10.2f} | Total: {self.total_value:9.2f} | init : {self.init_cash:9.2f}')
 
 
     class Holding(object):
@@ -82,20 +95,22 @@ class Portfolio(object):
         def display(self):
             display(self.ticker + " | " + str(self.position) + " | " + str(self.value))
 
-        def open_short(self):
+        def open_short(self, cash):
             if self.ticker == 'MSFT':
                 AAPL_changes.at[self.date, 'Open Short'] = self.score
                 AAPL_price.at[self.date, 'Open Short'] = self.price
-            self.position = -(math.floor(purchase_max / self.price))
+            #self.position = -(math.floor(purchase_max / self.price))
+            self.position = -(math.floor(cash * 0.4 / self.price))
             self.value = self.price * self.position
             self.init_short = self.value
             return self.value
 
-        def open_long(self):
+        def open_long(self, cash):
             if self.ticker == 'MSFT':
                 AAPL_changes.at[self.date, 'Open Long'] = self.score
                 AAPL_price.at[self.date, 'Open Long'] = self.price
-            self.position = (math.floor(purchase_max / self.price))
+            #self.position = (math.floor(purchase_max / self.price))
+            self.position = (math.floor(cash * 0.4 / self.price))
             self.value = self.price * self.position
             return self.value
 
@@ -121,18 +136,18 @@ class Portfolio(object):
             #display(f'Short Closed. Opened at {self.init_short}, closed at {temp}, meaning profit of {temp - self.init_short}')
             return temp
         
-        def adjust(self, date, score):
+        def adjust(self, date, score, cash):
             self.score = score
             self.date = date
             self.price = clean_table.at[self.date, self.ticker]
             self.change = 0
             if self.position == 0:
-                if self.score > 1.5: #1.25:
-                    self.change -= self.open_short()
-                if self.score < -1.5: #-1.25:
-                    self.change -= self.open_long()
+                if self.score > 1.25: #1.25:
+                    self.change -= self.open_short(cash)
+                if self.score < -1.25: #-1.25:
+                    self.change -= self.open_long(cash)
             elif self.position < 0:
-                if self.score < 0.75: #0.5:
+                if self.score < 0.5: #0.5:
                     self.change += self.close_short()
                 else:
                     self.value = self.price * self.position

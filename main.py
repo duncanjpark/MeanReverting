@@ -18,7 +18,7 @@ num_factors = 10            # 15 > 5
 train_period_days = 504     # 504 > 252 (seemingly) 
 num_quality_tickers = 50   # 100 too volatile, 75 shit the bed for some reason... sticking with 50
 lookback = 75               # trying 75
-R_squared_cutoff = 0.96     #
+R_squared_cutoff = 0.955     #was .96, and it seems to be best for volatility and returns
 risk_free_rate = 0.02       #
 
 #10 factors, 504 train days, 90 lookback: 267 ending but not as good as 15, 503, 60 in beginning
@@ -26,6 +26,9 @@ risk_free_rate = 0.02       #
 
 #10 factors, 504 days, 75 lookback seems to have more intra-month volatilaty but more consistent overall
 
+#^ that same setup, but with 1.25/.5 score cutoffs worked great, goint to 291
+
+#327 from 10, 504, 200, 75, .955, $10k max. seems it kinda just got lucky tho
 """
 Separate Data Periods
 """
@@ -88,7 +91,7 @@ port = Portfolio()
 port_value = {}
 
 for index in range(lookback, len(trade_sample.index)):
-#for index in range(lookback, 90 + lookback):
+#for index in range(lookback, 252 + lookback):
     #Select only quality tickers based on R^2
     current_window = trade_sample.iloc[index - lookback:index]
     trading_models = {ticker: sm.OLS(current_window[ticker], factors[index - lookback:index]).fit() for ticker in current_window.columns}
@@ -116,7 +119,9 @@ for index in range(lookback, len(trade_sample.index)):
     port.port_display()
     port_value[port.date] = port.total_value
 
-
+for ticker, score in zscores.items():
+    if score < -.75 or score > .75:
+        display(f'{ticker}: {score}')
 #port.port_holdings()
 
 port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfolio'])
@@ -164,7 +169,14 @@ with pd.plotting.plot_params.use("x_compat", True):
     port_value['Portfolio'].plot()
 
 plt.figure(215)
-spy_pos_ewm = spy_table['Position'].ewm(span=10).mean()
-spy_pos_ewm.plot()
+#spy_pos_ewm = spy_table['Position'].ewm(span=10).mean()
+#spy_pos_ewm.plot()
+
+spy_lev = spy_table['Leverage'].ewm(span=30).mean()
+spy_lev.plot()
+#spy_scores = (spy_table['Scores'].ewm(span=5).mean()) / 8
+#spy_scores.plot()
+#spy_count = spy_table['Count'].ewm(span=30).mean()
+#spy_count.plot()
 
 plt.show()
