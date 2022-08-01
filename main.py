@@ -12,14 +12,15 @@ from portfolio import AAPL_changes, AAPL_price
 from portfolio import Portfolio
 #from portfolio import total_long_close_value, total_long_open_value, total_short_close_value, total_short_open_value, total_SPY_long_close_value, total_SPY_long_open_value, total_SPY_short_close_value, total_SPY_short_open_value
 from portfolio import spy_table
+#import pyfolio
 
 #Parameters
 num_factors = 10            # 15 > 5
 train_period_days = 504     # 504 > 252 (seemingly) 
-num_quality_tickers = 50   # 100 too volatile, 75 shit the bed for some reason... sticking with 50
+num_quality_tickers = 200   # 100 too volatile, 75 shit the bed for some reason... sticking with 50
 lookback = 75               # trying 75
-R_squared_cutoff = 0.955     #was .96, and it seems to be best for volatility and returns
-risk_free_rate = 0.02       #
+R_squared_cutoff = 0.965     #was .96, and it seems to be best for volatility and returns
+risk_free_rate = 0.00       #
 
 #10 factors, 504 train days, 90 lookback: 267 ending but not as good as 15, 503, 60 in beginning
 #^seems less volatile
@@ -118,13 +119,16 @@ for index in range(lookback, len(trade_sample.index)):
 
     port.port_display()
     port_value[port.date] = port.total_value
-
+"""
 for ticker, score in zscores.items():
     if score < -.75 or score > .75:
         display(f'{ticker}: {score}')
+"""
 #port.port_holdings()
 
 port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfolio'])
+
+
 #log_return = np.sum(np.log(port_value/port_value.shift()), axis=1)
 #spy_log_return = np.sum(np.log(spy_table/spy_table.shift()), axis=1)
 #spy_log_return.plot()
@@ -132,9 +136,18 @@ port_value = pd.DataFrame.from_dict(port_value, orient='index', columns=['Portfo
 #log_return.plot()
 
 #plt.figure(210)
-#sharpe_ratio = (log_return.mean() - risk_free_rate)/log_return.std()
-#asr = sharpe_ratio*252**.5
-#asr.plot()
+log_return = np.sum(np.log(port_value/port_value.shift()), axis=1)
+sharpe_ratio = (log_return.mean() - risk_free_rate)/log_return.std()
+asr = sharpe_ratio*252**.5
+print(f'Sharpe: {sharpe_ratio:.3f}, ASR: {asr:.3f}')
+
+
+test = pd.DataFrame(spy_table['SPY'])
+log_return = np.sum(np.log(test/test.shift()), axis=1)
+sharpe_ratio = (log_return.mean() - risk_free_rate)/log_return.std()
+asr = sharpe_ratio*252**.5
+print(f'Sharpe: {sharpe_ratio:.3f}, ASR: {asr:.3f}')
+
 
 """
 plt.figure(211)
@@ -159,6 +172,11 @@ with pd.plotting.plot_params.use("x_compat", True):
 plt.figure(214)
 
 day1 = port_value.index[0]
+
+#port_value['Daily Return'] = port_value['Portfolio'].pct_change(1)
+#spy_table['Daily Return'] = spy_table['SPY'].pct_change(1)
+#with pyfolio.plotting.plotting_context(font_scale=1.1):
+#    pyfolio.create_full_tear_sheet(returns=port_value['Daily Return'], benchmark_rets=spy_table['Daily Return'], set_context=False)
 
 spy_table = pd.DataFrame(spy_table)
 spy_table.loc[:,'SPY'] = spy_table.loc[:,'SPY']  * ((100000) / spy_table.at[day1, 'SPY'])
