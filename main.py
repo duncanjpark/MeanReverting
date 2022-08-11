@@ -125,7 +125,7 @@ log_return = np.sum(np.log(test/test.shift()), axis=1)
 sharpe_ratio = (log_return.mean() - risk_free_rate)/log_return.std()
 asr = sharpe_ratio*252**.5
 print(f'Sharpe: {sharpe_ratio:.3f}, ASR: {asr:.3f}')
-
+"""
 #Demonstrating trading strategy via plots
 plt.figure(211)
 with pd.plotting.plot_params.use("x_compat", True):
@@ -144,10 +144,11 @@ with pd.plotting.plot_params.use("x_compat", True):
     AAPL_price["Open Long"].plot(marker="o", color='r')
     AAPL_price["Close Short"].plot(marker="x", color='g')
     AAPL_price["Close Long"].plot(marker="x", color='r')
+    plt.title('MSFT Trades on Prices')
     plt.legend()
 
 plt.figure(214)
-
+"""
 day1 = port_value.index[0]
 
 
@@ -159,14 +160,9 @@ with pd.plotting.plot_params.use("x_compat", True):
     port_value['Portfolio'].plot()
 
 plt.figure(215)
-#spy_pos_ewm = spy_table['Position'].ewm(span=10).mean()
-#spy_pos_ewm.plot()
 
 spy_lev = spy_table['Leverage'].ewm(span=30).mean()
 spy_lev.plot()
-#spy_scores = (spy_table['Scores'].ewm(span=5).mean()) / 8
-#spy_scores.plot()
-#spy_count = spy_table['Count'].ewm(span=30).mean()
-#spy_count.plot()
+
 
 plt.show()
